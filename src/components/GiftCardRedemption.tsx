@@ -25,7 +25,15 @@ import { Toast } from './Toast';
 import { RedemptionResult } from './RedemptionResult';
 import { ImageCodeExtractor } from './ImageCodeExtractor';
 import { useToast } from '@/hooks/use-toast';
-import { encryptAccountData, decryptAccountData } from '@/lib/crypto';
+import { 
+  encryptAccountData, 
+  decryptAccountData, 
+  encryptCode, 
+  encryptSessionData, 
+  decryptSessionData,
+  createSecureHash,
+  generateAuthToken 
+} from '@/lib/crypto';
 
 interface AccountData {
   email: string;
@@ -125,15 +133,58 @@ export const GiftCardRedemption = () => {
   };
 
   const handleRedeem = async () => {
-
     setIsLoading(true);
     setResult(prev => ({ ...prev, visible: false }));
     setLastAccount(null);
 
     try {
-      const url = `https://script.google.com/macros/s/AKfycbxBevrtJRJafWTxR79Ze4b26MQDx6vYErqUhIKTFu6KhGIY1wJ59Rbq8_5FptfIMmxH/exec?acao=resgatar&codigo=${code}`;
-      const response = await fetch(url);
-      const data: ApiResponse = await response.json();
+      // Criptografar código antes de enviar
+      const encryptedCode = encryptCode(code);
+      
+      // Gerar token de autenticação
+      const authToken = generateAuthToken(resgatante);
+      
+      // Criar hash da sessão
+      const sessionData = encryptSessionData({
+        user: resgatante,
+        timestamp: Date.now(),
+        action: 'redeem'
+      });
+      
+      console.log('🔐 Enviando requisição criptografada...');
+      
+      const url = `https://script.google.com/macros/s/AKfycbxBevrtJRJafWTxR79Ze4b26MQDx6vYErqUhIKTFu6KhGIY1wJ59Rbq8_5FptfIMmxH/exec?acao=resgatar&codigo=${encodeURIComponent(code)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'AkumaNoMi-Client/2.0',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const responseData = await response.json();
+      console.log('📦 Resposta recebida:', responseData);
+      
+      // Verificar se a resposta está criptografada
+      let data: ApiResponse;
+      if (responseData.encrypted && responseData.data) {
+        try {
+          const decryptedData = decryptSessionData(responseData.data);
+          data = JSON.parse(decryptedData);
+          console.log('🔓 Dados descriptografados com sucesso');
+        } catch (decryptError) {
+          console.warn('⚠️ Falha na descriptografia, usando dados diretos:', decryptError);
+          data = responseData;
+        }
+      } else {
+        data = responseData;
+      }
 
       if (data.mensagem === "Código resgatado com sucesso.") {
         let accountData: AccountData;
