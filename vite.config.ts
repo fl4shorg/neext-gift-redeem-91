@@ -16,55 +16,45 @@ export default defineConfig(({ mode }) => ({
     outDir: "dist",
     assetsDir: "assets",
     sourcemap: false, // Desabilita source maps para segurança
+    minify: 'esbuild', // Minificação rápida e eficiente
     rollupOptions: {
       output: {
-        manualChunks: undefined,
+        // Separação de chunks para melhor performance
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+          if (id.includes('/src/lib/crypto')) {
+            return 'secure';
+          }
+          return undefined;
+        },
       },
+    },
+    esbuild: {
+      drop: ['console', 'debugger'], // Remove console.log e debugger em produção
     },
   },
   plugins: [
     react(), 
     mode === "development" && componentTagger(),
+    // Obfuscação leve apenas para arquivos sensíveis
     mode === "production" && obfuscator({
-      include: ["src/**/*.{js,ts,jsx,tsx}"],
+      include: ["src/lib/crypto.ts"], // Apenas arquivos sensíveis
       exclude: [/node_modules/, /\.d\.ts$/],
       apply: "build",
       options: {
-        // Configurações de segurança máxima
+        // Configurações leves para performance
         compact: true,
-        controlFlowFlattening: true,
-        controlFlowFlatteningThreshold: 1,
-        
-        // Proteção de strings
-        stringArray: true,
-        stringArrayEncoding: ['base64'],
-        stringArrayIndexShift: true,
-        stringArrayRotate: true,
-        stringArrayShuffle: true,
-        stringArrayWrappersCount: 5,
-        stringArrayWrappersChainedCalls: true,
-        
-        // Ofuscação de identificadores
         identifierNamesGenerator: 'hexadecimal',
-        identifiersDictionary: [],
-        identifiersPrefix: '',
         renameGlobals: false,
-        renameProperties: false,
-        
-        // Anti-debug e segurança
-        debugProtection: true,
-        debugProtectionInterval: 2000,
-        disableConsoleOutput: true,
-        selfDefending: true,
-        
-        // Transformações de código
-        deadCodeInjection: true,
-        deadCodeInjectionThreshold: 0.4,
-        splitStrings: true,
-        splitStringsChunkLength: 5,
-        
-        // Performance vs Segurança
-        transformObjectKeys: true,
+        stringArray: false, // Desabilitado para performance
+        controlFlowFlattening: false, // Desabilitado para performance
+        deadCodeInjection: false, // Desabilitado para performance
+        debugProtection: false, // Desabilitado para performance
+        selfDefending: false, // Desabilitado para performance
+        transformObjectKeys: false, // Desabilitado para performance
+        disableConsoleOutput: true, // Mantém para remover logs
         unicodeEscapeSequence: false
       }
     })
