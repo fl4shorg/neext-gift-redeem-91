@@ -126,6 +126,25 @@ export const GiftCardRedemption = () => {
       return;
     }
 
+    // Verificar formato do código
+    const codePattern = /^[A-Z0-9]{4}-[A-Z0-9]{2}-[A-Z0-9]{6}-[A-Z0-9]$/;
+    const normalizedCode = code.trim().toUpperCase();
+    
+    console.log('🔍 Verificando formato do código:', normalizedCode);
+    console.log('✅ Formato válido:', codePattern.test(normalizedCode));
+    
+    if (!codePattern.test(normalizedCode)) {
+      toast({
+        title: "Formato inválido",
+        description: "O código deve estar no formato: XXXX-XX-XXXXXX-X",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Atualizar código com versão normalizada
+    setCode(normalizedCode);
+
     // Escolher frase aleatória e mostrar dialog
     const randomPhrase = confirmPhrases[Math.floor(Math.random() * confirmPhrases.length)];
     setConfirmPhrase(randomPhrase);
@@ -138,11 +157,16 @@ export const GiftCardRedemption = () => {
     setLastAccount(null);
 
     try {
+      // Debug: Código original
+      console.log('🔍 Código original:', code);
+      
       // Criptografar código antes de enviar
       const encryptedCode = encryptCode(code);
+      console.log('🔐 Código criptografado:', encryptedCode);
       
       // Gerar token de autenticação
       const authToken = generateAuthToken(resgatante);
+      console.log('🎫 Token gerado:', authToken);
       
       // Criar hash da sessão
       const sessionData = encryptSessionData({
@@ -150,11 +174,15 @@ export const GiftCardRedemption = () => {
         timestamp: Date.now(),
         action: 'redeem'
       });
+      console.log('📊 Dados de sessão:', sessionData);
       
       console.log('🔐 Enviando requisição criptografada...');
       
       const { API_URL, APP_CONFIG } = await import('@/lib/config');
+      console.log('🌐 API URL:', API_URL);
+      
       const url = `${API_URL}?acao=resgatar&codigo=${encodeURIComponent(encryptedCode)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
+      console.log('🔗 URL completa:', url);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -163,6 +191,8 @@ export const GiftCardRedemption = () => {
           'X-Requested-With': 'XMLHttpRequest'
         }
       });
+      
+      console.log('📡 Status da resposta:', response.status, response.statusText);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -177,14 +207,17 @@ export const GiftCardRedemption = () => {
         try {
           const decryptedData = decryptSessionData(responseData.data);
           data = decryptedData; // decryptSessionData já retorna o objeto parseado
-          console.log('🔓 Dados descriptografados com sucesso');
+          console.log('🔓 Dados descriptografados com sucesso:', data);
         } catch (decryptError) {
           console.warn('⚠️ Falha na descriptografia, usando dados diretos:', decryptError);
           data = responseData;
         }
       } else {
+        console.log('📋 Dados não criptografados recebidos:', responseData);
         data = responseData;
       }
+      
+      console.log('✅ Dados finais para processamento:', data);
 
       if (data.mensagem === "Código resgatado com sucesso.") {
         let accountData: AccountData;
@@ -230,13 +263,57 @@ export const GiftCardRedemption = () => {
         });
       }
     } catch (error) {
+      console.error('❌ Erro na requisição:', error);
+      
+      // Tentar modo de teste simples em caso de erro
+      console.log('🔧 Tentando modo de teste simples...');
+      try {
+        await testSimpleRequest();
+      } catch (testError) {
+        console.error('❌ Teste simples também falhou:', testError);
+      }
+      
       setResult({
         type: 'error',
-        message: 'Código da Akuma no Mi inválido.',
+        message: 'Código da Akuma no Mi inválido. Verifique o console para mais detalhes.',
         visible: true
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Função de teste simples para debug
+  const testSimpleRequest = async () => {
+    try {
+      const { API_URL } = await import('@/lib/config');
+      console.log('🧪 Testando requisição simples para:', API_URL);
+      
+      // Teste com um código simples sem criptografia
+      const testUrl = `${API_URL}?acao=resgatar&codigo=TEST-GC-123456-A`;
+      console.log('🔗 URL de teste:', testUrl);
+      
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('📡 Resposta do teste:', response.status, response.statusText);
+      
+      const text = await response.text();
+      console.log('📄 Conteúdo da resposta:', text);
+      
+      try {
+        const json = JSON.parse(text);
+        console.log('📦 JSON da resposta:', json);
+      } catch (parseError) {
+        console.log('⚠️ Resposta não é JSON válido');
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro no teste simples:', error);
     }
   };
 
