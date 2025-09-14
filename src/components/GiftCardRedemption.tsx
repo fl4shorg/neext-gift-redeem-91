@@ -406,6 +406,35 @@ export const GiftCardRedemption = () => {
             </button>
             
             <button
+              onClick={async () => {
+                console.log('🧪 Testando conexão básica...');
+                try {
+                  const { API_URL } = await import('@/lib/config');
+                  const testUrl = `${API_URL}?action=listAccounts`;
+                  console.log('🔗 URL de teste:', testUrl);
+                  
+                  const response = await fetch(testUrl);
+                  console.log('📡 Status:', response.status);
+                  
+                  if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Resposta do teste:', data);
+                    toast({ title: "Sucesso", description: "Conexão com App Script funcionando!" });
+                  } else {
+                    console.log('❌ Erro HTTP:', response.status, response.statusText);
+                    toast({ title: "Erro", description: `HTTP ${response.status}`, variant: "destructive" });
+                  }
+                } catch (error) {
+                  console.error('❌ Erro na conexão:', error);
+                  toast({ title: "Erro", description: "Falha na conexão", variant: "destructive" });
+                }
+              }}
+              className="akuma-button glow-button opacity-70 text-xs"
+            >
+              🔧 Testar Conexão
+            </button>
+            
+            <button
               onClick={handleCopyAccount}
               disabled={!lastAccount}
               className="akuma-button glow-button"
