@@ -154,7 +154,7 @@ export const GiftCardRedemption = () => {
       console.log('🔐 Enviando requisição criptografada...');
       
       const { API_URL, APP_CONFIG } = await import('@/lib/config');
-      const url = `${API_URL}?acao=resgatar&codigo=${encodeURIComponent(code)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
+      const url = `${API_URL}?acao=resgatar&codigo=${encodeURIComponent(encryptedCode)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -177,7 +177,7 @@ export const GiftCardRedemption = () => {
       if (responseData.encrypted && responseData.data) {
         try {
           const decryptedData = decryptSessionData(responseData.data);
-          data = JSON.parse(decryptedData);
+          data = decryptedData; // decryptSessionData já retorna o objeto parseado
           console.log('🔓 Dados descriptografados com sucesso');
         } catch (decryptError) {
           console.warn('⚠️ Falha na descriptografia, usando dados diretos:', decryptError);
