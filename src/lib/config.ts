@@ -1,6 +1,6 @@
-// Configurações sensíveis - Este arquivo será totalmente obfuscado
+// Configurações da API - Nova URL
 const _0x1a2b = () => {
-  const _0x3c4d = 'aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J4QmV2cnRKUkphZldUeFI3OVplNGIyNk1RRHg2dllFcnFVaElLVEZ1NktoR0lZMXdKNTlSYnE4XzVGcHRmSU1teEgvZXhlYw==';
+  const _0x3c4d = 'aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J3WVl6VTAxeFNNREpTVGc3ejUtR3lqN2M5OWZmYUVBYkFKUHdqbnJQWUVJMWhjZTJuQU9LSmlZT1RkM243MnFqWEcvZXhlYw==';
   return atob(_0x3c4d);
 };
 

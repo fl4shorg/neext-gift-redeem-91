@@ -25,15 +25,7 @@ import { Toast } from './Toast';
 import { RedemptionResult } from './RedemptionResult';
 import { ImageCodeExtractor } from './ImageCodeExtractor';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  encryptAccountData, 
-  decryptAccountData, 
-  encryptCode, 
-  encryptSessionData, 
-  decryptSessionData,
-  createSecureHash,
-  generateAuthToken 
-} from '@/lib/crypto';
+// Crypto imports removidos - usando nova API simplificada
 
 interface AccountData {
   email: string;
@@ -138,23 +130,10 @@ export const GiftCardRedemption = () => {
     setLastAccount(null);
 
     try {
-      // Criptografar código antes de enviar
-      const encryptedCode = encryptCode(code);
+      console.log('🎁 Enviando requisição para nova API...');
       
-      // Gerar token de autenticação
-      const authToken = generateAuthToken(resgatante);
-      
-      // Criar hash da sessão
-      const sessionData = encryptSessionData({
-        user: resgatante,
-        timestamp: Date.now(),
-        action: 'redeem'
-      });
-      
-      console.log('🔐 Enviando requisição criptografada...');
-      
-      const { API_URL, APP_CONFIG } = await import('@/lib/config');
-      const url = `${API_URL}?acao=resgatar&codigo=${encodeURIComponent(encryptedCode)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
+      const { API_URL } = await import('@/lib/config');
+      const url = `${API_URL}?action=redeem&resgatante=${encodeURIComponent(resgatante)}&gift=${encodeURIComponent(code)}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -168,64 +147,40 @@ export const GiftCardRedemption = () => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const responseData = await response.json();
-      console.log('📦 Resposta recebida:', responseData);
-      
-      // Verificar se a resposta está criptografada
-      let data: ApiResponse;
-      if (responseData.encrypted && responseData.data) {
-        try {
-          const decryptedData = decryptSessionData(responseData.data);
-          data = decryptedData; // decryptSessionData já retorna o objeto parseado
-          console.log('🔓 Dados descriptografados com sucesso');
-        } catch (decryptError) {
-          console.warn('⚠️ Falha na descriptografia, usando dados diretos:', decryptError);
-          data = responseData;
-        }
-      } else {
-        data = responseData;
-      }
+      const data = await response.json();
+      console.log('📦 Resposta recebida:', data);
 
-      if (data.mensagem === "Código resgatado com sucesso.") {
+      if (data.status === "success") {
         let accountData: AccountData;
         
-        if (data.usuario && data.senha && data.servidor) {
-          // IPTV type account
+        if (data.hasOwnProperty('servidor')) {
+          // É conta IPTV - mostra nome, senha e servidor
           accountData = {
-            email: data.usuario,
-            password: data.senha,
+            email: data.nome || 'Não informado',
+            password: data.senha || 'Não informada',
             accountType: 'IPTV',
-            server: data.servidor,
+            server: data.servidor || 'Não informado',
           };
         } else {
-          // Regular account
+          // É conta normal - mostra email e senha
           accountData = {
-            email: data.email || '',
-            password: data.senha || '',
-            accountType: data.tipoConta || '',
+            email: data.email || 'Não informado',
+            password: data.senha || 'Não informada',
+            accountType: data.tipo || 'Normal',
           };
         }
 
-        // Criptografar dados antes de armazenar
-        const encryptedAccountData = encryptAccountData(accountData);
-        setLastAccount(encryptedAccountData);
+        setLastAccount(accountData);
         setResult({
           type: 'success',
-          message: data.mensagem,
-          accountData: encryptedAccountData,
-          visible: true
-        });
-      } else if (data.mensagem === "Código já resgatado.") {
-        setResult({
-          type: 'warning',
-          message: data.mensagem,
-          redeemedAt: data.resgatadoEm,
+          message: 'GiftCard resgatado com sucesso!',
+          accountData: accountData,
           visible: true
         });
       } else {
         setResult({
           type: 'error',
-          message: 'Código da Akuma no Mi inválido.',
+          message: data.message || 'Erro ao resgatar GiftCard.',
           visible: true
         });
       }
@@ -243,14 +198,11 @@ export const GiftCardRedemption = () => {
   const handleCopyAccount = async () => {
     if (!lastAccount) return;
     
-    // Descriptografar dados antes de copiar
-    const decryptedAccount = decryptAccountData(lastAccount);
-    
     let text = '';
-    if (decryptedAccount.accountType === 'IPTV') {
-      text = `Usuário: ${decryptedAccount.email}\nSenha: ${decryptedAccount.password}\nServidor: ${decryptedAccount.server}\nTipo de Conta: IPTV`;
+    if (lastAccount.accountType === 'IPTV') {
+      text = `Usuário: ${lastAccount.email}\nSenha: ${lastAccount.password}\nServidor: ${lastAccount.server}\nTipo de Conta: IPTV`;
     } else {
-      text = `Email: ${decryptedAccount.email}\nSenha: ${decryptedAccount.password}\nTipo de Conta: ${decryptedAccount.accountType}`;
+      text = `Email: ${lastAccount.email}\nSenha: ${lastAccount.password}\nTipo de Conta: ${lastAccount.accountType}`;
     }
     
     try {
