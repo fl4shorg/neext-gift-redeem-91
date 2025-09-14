@@ -42,66 +42,57 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(), 
     mode === "development" && componentTagger(),
-    // Obfuscação ULTRA AGRESSIVA - esconde tudo completamente
+    // Obfuscação EXTREMA nos arquivos mais críticos
     mode === "production" && obfuscator({
       include: [
-        "src/lib/crypto.ts",
-        "src/lib/config.ts", 
-        "src/components/GiftCardRedemption.tsx",
-        "src/components/DevilFruitIcon.tsx",
-        "src/lib/utils.ts"
+        "src/lib/crypto.ts",    // Funções de criptografia
+        "src/lib/config.ts",    // URLs e chaves sensíveis  
+        "src/components/GiftCardRedemption.tsx" // Componente principal com API calls
       ],
       exclude: [/node_modules/, /\.d\.ts$/, /ui\//],
       apply: "build",
       options: {
-        // MÁXIMA OBFUSCAÇÃO - Tudo habilitado
+        // Configuração agressiva mas estável
         compact: true,
         identifierNamesGenerator: 'mangled-shuffled',
-        renameGlobals: true,
         
-        // Arrays e strings embaralhados
+        // String obfuscation máximo
         stringArray: true,
         stringArrayCallsTransform: true,
         stringArrayEncoding: ['base64'],
         stringArrayIndexShift: true,
         stringArrayRotate: true,
         stringArrayShuffle: true,
-        stringArrayWrappersCount: 5,
-        stringArrayWrappersChainedCalls: true,
-        stringArrayWrappersParametersMaxCount: 5,
-        stringArrayWrappersType: 'function',
+        stringArrayWrappersCount: 2,
+        stringArrayWrappersParametersMaxCount: 2,
+        stringArrayWrappersType: 'variable',
         
-        // Controle de fluxo complexo
+        // Controle de fluxo moderado para compatibilidade
         controlFlowFlattening: true,
-        controlFlowFlatteningThreshold: 1,
+        controlFlowFlatteningThreshold: 0.5,
         
-        // Injeção de código morto
-        deadCodeInjection: true,
-        deadCodeInjectionThreshold: 1,
-        
-        // Proteções máximas
+        // Proteções importantes
         debugProtection: true,
-        debugProtectionInterval: 2000,
+        debugProtectionInterval: 4000,
         selfDefending: true,
-        
-        // Transformações avançadas
-        transformObjectKeys: true,
-        splitStrings: true,
-        splitStringsChunkLength: 5,
-        
-        // Unicode e números
-        unicodeEscapeSequence: true,
-        numbersToExpressions: true,
-        
-        // Console e logs
         disableConsoleOutput: true,
         
-        // Seed aleatório para máxima aleatoriedade
+        // String splitting para obscurecer URLs
+        splitStrings: true,
+        splitStringsChunkLength: 6,
+        
+        // Unicode encoding
+        unicodeEscapeSequence: true,
+        
+        // Seed aleatório
         seed: Math.floor(Math.random() * 100000),
         
-        // Compactar variáveis
-        reservedNames: [],
-        reservedStrings: []
+        // Preservar nomes essenciais do React
+        reservedNames: [
+          'React', 'ReactDOM', 'useState', 'useEffect', 'useCallback', 'useMemo',
+          'document', 'window', 'console', 'setTimeout', 'setInterval', 'fetch',
+          'import', 'export', 'default'
+        ]
       }
     })
   ].filter(Boolean),
