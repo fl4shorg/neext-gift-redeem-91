@@ -160,7 +160,6 @@ export const GiftCardRedemption = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': atob(APP_CONFIG.userAgent),
           'X-Requested-With': 'XMLHttpRequest'
         }
       });
