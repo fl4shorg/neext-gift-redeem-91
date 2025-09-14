@@ -374,21 +374,42 @@ export const GiftCardRedemption = () => {
 
         {/* Code Input and Buttons */}
         <div className="w-full space-y-6">
-          {/* Etapa 1: Captura de Imagem */}
+          {/* Etapa 1: Inserir Código */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">1</span>
-              Escaneie sua Akuma no Mi
+              Digite ou escaneie seu código
             </h2>
             
-            <ImageCodeExtractor 
-              onCodeExtracted={handleCodeExtracted}
-              onCodeSuggestion={(code) => {
-                if (code.trim()) {
-                  setCode(code);
-                }
-              }}
+            {/* Campo de entrada manual */}
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="XXXXX-XX-XXXXXXXX-X"
+              className="akuma-input text-center font-mono text-lg tracking-wider"
+              disabled={isLoading}
+              maxLength={20}
             />
+            
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-2">ou</p>
+              <details className="text-left">
+                <summary className="cursor-pointer text-primary hover:text-primary/80 text-sm">
+                  📸 Escanear imagem do código
+                </summary>
+                <div className="mt-3">
+                  <ImageCodeExtractor 
+                    onCodeExtracted={handleCodeExtracted}
+                    onCodeSuggestion={(code) => {
+                      if (code.trim()) {
+                        setCode(code.toUpperCase());
+                      }
+                    }}
+                  />
+                </div>
+              </details>
+            </div>
           </div>
 
           {/* Etapa 2: Confirmação e Resgate */}
@@ -397,16 +418,6 @@ export const GiftCardRedemption = () => {
               <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">2</span>
               Confirme e finalize o resgate
             </h2>
-            
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Código da Akuma no Mi"
-              className="akuma-input"
-              disabled={isLoading}
-              readOnly
-            />
             
             <input
               type="text"
