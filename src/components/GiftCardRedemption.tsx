@@ -244,10 +244,29 @@ export const GiftCardRedemption = () => {
       }
     } catch (error) {
       console.error('❌ Erro na requisição:', error);
+      console.error('❌ Tipo do erro:', typeof error);
+      console.error('❌ Erro toString:', error?.toString());
+      console.error('❌ Erro message:', (error as any)?.message);
+      console.error('❌ Erro stack:', (error as any)?.stack);
+      
+      let errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      
+      if ((error as any)?.message) {
+        const errorMsg = (error as any).message;
+        if (errorMsg.includes('CORS')) {
+          errorMessage = 'Erro de CORS. O Google Apps Script pode não estar configurado para aceitar requisições.';
+        } else if (errorMsg.includes('Failed to fetch')) {
+          errorMessage = 'Falha na conexão. Verifique se o Google Apps Script está ativo e publicado.';
+        } else if (errorMsg.includes('NetworkError')) {
+          errorMessage = 'Erro de rede. Verifique sua conexão com a internet.';
+        } else {
+          errorMessage = `Erro: ${errorMsg}`;
+        }
+      }
       
       setResult({
         type: 'error',
-        message: 'Erro de conexão. Verifique sua internet e tente novamente.',
+        message: errorMessage,
         visible: true
       });
     } finally {
