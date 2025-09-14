@@ -1,0 +1,271 @@
+function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const contasSheet = ss.getSheetByName("Contas") || ss.insertSheet("Contas");
+  const iptvSheet = ss.getSheetByName("IPTV") || ss.insertSheet("IPTV");
+  const resgatesSheet = ss.getSheetByName("Resgates") || ss.insertSheet("Resgates");
+
+  // Cabeçalhos se não existirem
+  if (contasSheet.getLastRow() === 0) {
+    contasSheet.appendRow(["ID", "GiftCard", "Email", "Senha", "Tipo", "Ativo", "Resgatado", "DataCriacao"]);
+  }
+  if (iptvSheet.getLastRow() === 0) {
+    iptvSheet.appendRow(["ID", "GiftCard", "Nome", "Senha", "Servidor", "Ativo", "Resgatado", "DataCriacao"]);
+  }
+  if (resgatesSheet.getLastRow() === 0) {
+    resgatesSheet.appendRow(["IDConta", "GiftCard", "TipoConta", "Resgatante", "DataHora"]);
+  }
+
+  const action = e.parameter.action;
+  let result = { status: "error", message: "Ação inválida" };
+
+  try {
+    switch (action) {
+      case "addAccount":
+        result = addAccount(contasSheet, e);
+        break;
+      case "addIPTV":
+        result = addIPTV(iptvSheet, e);
+        break;
+      case "redeem":
+        result = redeemGift(contasSheet, iptvSheet, resgatesSheet, e);
+        break;
+      case "listAccounts":
+        result = listAccounts(contasSheet, iptvSheet);
+        break;
+      case "listRedeemed":
+        result = listRedeemed(resgatesSheet);
+        break;
+      case "deleteAccount":
+        result = deleteAccount(contasSheet, iptvSheet, e);
+        break;
+      case "editAccount":
+        result = editAccount(contasSheet, iptvSheet, e);
+        break;
+      case "regenerateGiftCard":
+        result = regenerateGiftCard(contasSheet, iptvSheet, e);
+        break;
+      case "toggleAccount":
+        result = toggleAccount(contasSheet, iptvSheet, e);
+        break;
+    }
+  } catch (err) {
+    result = { status: "error", message: err.message };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// 🔑 Funções utilitárias
+function generateGiftCard() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  function random(len) {
+    return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  }
+  return `NEEXT-GC-${random(8)}-${Math.floor(Math.random() * 9)}`;
+}
+function generateUUID() {
+  return Utilities.getUuid();
+}
+function now() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+}
+
+// 📌 Criar conta normal
+function addAccount(sheet, e) {
+  const { email, senha, tipo } = e.parameter;
+  if (!email || !senha || !tipo) {
+    return { status: "error", message: "Parâmetros faltando (email, senha, tipo)" };
+  }
+  const id = generateUUID();
+  const gift = generateGiftCard();
+  sheet.appendRow([id, gift, email, senha, tipo, true, false, now()]);
+  return { status: "success", id, gift };
+}
+
+// 📌 Criar conta IPTV
+function addIPTV(sheet, e) {
+  const { nome, senha, servidor } = e.parameter;
+  if (!nome || !senha || !servidor) {
+    return { status: "error", message: "Parâmetros faltando (nome, senha, servidor)" };
+  }
+  const id = generateUUID();
+  const gift = generateGiftCard();
+  sheet.appendRow([id, gift, nome, senha, servidor, true, false, now()]);
+  return { status: "success", id, gift };
+}
+
+// 📌 Resgatar GiftCard
+function redeemGift(contasSheet, iptvSheet, resgatesSheet, e) {
+  const { gift, resgatante } = e.parameter;
+  if (!gift || !resgatante) {
+    return { status: "error", message: "Parâmetros faltando (gift, resgatante)" };
+  }
+
+  // Procurar em contas normais
+  let data = contasSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === gift) {
+      if (!data[i][5]) return { status: "error", message: "Conta desativada" };
+      if (data[i][6]) return { status: "error", message: "GiftCard já resgatado" };
+
+      contasSheet.getRange(i + 1, 7).setValue(true);
+      resgatesSheet.appendRow([data[i][0], gift, "Normal", resgatante, now()]);
+
+      return {
+        status: "success",
+        tipo: data[i][4],
+        email: data[i][2],
+        senha: data[i][3],
+        gift,
+        resgatante,
+        dataHora: now()
+      };
+    }
+  }
+
+  // Procurar em IPTV
+  data = iptvSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === gift) {
+      if (!data[i][5]) return { status: "error", message: "Conta IPTV desativada" };
+      if (data[i][6]) return { status: "error", message: "GiftCard já resgatado" };
+
+      iptvSheet.getRange(i + 1, 7).setValue(true);
+      resgatesSheet.appendRow([data[i][0], gift, "IPTV", resgatante, now()]);
+
+      return {
+        status: "success",
+        nome: data[i][2],
+        senha: data[i][3],
+        servidor: data[i][4],
+        gift,
+        resgatante,
+        dataHora: now()
+      };
+    }
+  }
+
+  return { status: "error", message: "GiftCard não encontrado" };
+}
+
+// 📌 Listar contas
+function listAccounts(contasSheet, iptvSheet) {
+  return {
+    status: "success",
+    contas: contasSheet.getDataRange().getValues().slice(1),
+    iptv: iptvSheet.getDataRange().getValues().slice(1)
+  };
+}
+
+// 📌 Listar resgates
+function listRedeemed(resgatesSheet) {
+  return {
+    status: "success",
+    resgates: resgatesSheet.getDataRange().getValues().slice(1)
+  };
+}
+
+// 📌 Apagar conta
+function deleteAccount(contasSheet, iptvSheet, e) {
+  const { id } = e.parameter;
+  if (!id) return { status: "error", message: "Parâmetro faltando (id)" };
+
+  let data = contasSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      contasSheet.deleteRow(i + 1);
+      return { status: "success", message: "Conta normal apagada" };
+    }
+  }
+  data = iptvSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      iptvSheet.deleteRow(i + 1);
+      return { status: "success", message: "Conta IPTV apagada" };
+    }
+  }
+  return { status: "error", message: "Conta não encontrada" };
+}
+
+// 📌 Editar conta
+function editAccount(contasSheet, iptvSheet, e) {
+  const { id, email, senha, tipo, nome, servidor } = e.parameter;
+  if (!id) return { status: "error", message: "Parâmetro faltando (id)" };
+
+  let data = contasSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      if (email) contasSheet.getRange(i + 1, 3).setValue(email);
+      if (senha) contasSheet.getRange(i + 1, 4).setValue(senha);
+      if (tipo) contasSheet.getRange(i + 1, 5).setValue(tipo);
+      return { status: "success", message: "Conta normal editada" };
+    }
+  }
+
+  data = iptvSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      if (nome) iptvSheet.getRange(i + 1, 3).setValue(nome);
+      if (senha) iptvSheet.getRange(i + 1, 4).setValue(senha);
+      if (servidor) iptvSheet.getRange(i + 1, 5).setValue(servidor);
+      return { status: "success", message: "Conta IPTV editada" };
+    }
+  }
+
+  return { status: "error", message: "Conta não encontrada" };
+}
+
+// 📌 Regenerar GiftCard
+function regenerateGiftCard(contasSheet, iptvSheet, e) {
+  const { id } = e.parameter;
+  if (!id) return { status: "error", message: "Parâmetro faltando (id)" };
+
+  const newGift = generateGiftCard();
+
+  let data = contasSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      contasSheet.getRange(i + 1, 2).setValue(newGift);
+      contasSheet.getRange(i + 1, 7).setValue(false);
+      return { status: "success", newGift };
+    }
+  }
+
+  data = iptvSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      iptvSheet.getRange(i + 1, 2).setValue(newGift);
+      iptvSheet.getRange(i + 1, 7).setValue(false);
+      return { status: "success", newGift };
+    }
+  }
+
+  return { status: "error", message: "Conta não encontrada" };
+}
+
+// 📌 Ativar/Desativar conta
+function toggleAccount(contasSheet, iptvSheet, e) {
+  const { id, status } = e.parameter;
+  if (!id || status === undefined) return { status: "error", message: "Parâmetros faltando (id, status)" };
+
+  const ativo = status === "true";
+
+  let data = contasSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      contasSheet.getRange(i + 1, 6).setValue(ativo);
+      return { status: "success", message: `Conta normal ${ativo ? "ativada" : "desativada"}` };
+    }
+  }
+
+  data = iptvSheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === id) {
+      iptvSheet.getRange(i + 1, 6).setValue(ativo);
+      return { status: "success", message: `Conta IPTV ${ativo ? "ativada" : "desativada"}` };
+    }
+  }
+
+  return { status: "error", message: "Conta não encontrada" };
+}

@@ -157,32 +157,15 @@ export const GiftCardRedemption = () => {
     setLastAccount(null);
 
     try {
-      // Debug: Código original
-      console.log('🔍 Código original:', code);
+      console.log('🔍 Iniciando resgate do código:', code);
+      console.log('👤 Resgatante:', resgatante);
       
-      // Criptografar código antes de enviar
-      const encryptedCode = encryptCode(code);
-      console.log('🔐 Código criptografado:', encryptedCode);
-      
-      // Gerar token de autenticação
-      const authToken = generateAuthToken(resgatante);
-      console.log('🎫 Token gerado:', authToken);
-      
-      // Criar hash da sessão
-      const sessionData = encryptSessionData({
-        user: resgatante,
-        timestamp: Date.now(),
-        action: 'redeem'
-      });
-      console.log('📊 Dados de sessão:', sessionData);
-      
-      console.log('🔐 Enviando requisição criptografada...');
-      
-      const { API_URL, APP_CONFIG } = await import('@/lib/config');
+      const { API_URL } = await import('@/lib/config');
       console.log('🌐 API URL:', API_URL);
       
-      const url = `${API_URL}?acao=resgatar&codigo=${encodeURIComponent(encryptedCode)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
-      console.log('🔗 URL completa:', url);
+      // Construir URL simples sem criptografia (como seu backend espera)
+      const url = `${API_URL}?action=redeem&gift=${encodeURIComponent(code)}&resgatante=${encodeURIComponent(resgatante)}`;
+      console.log('🔗 URL da requisição:', url);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -198,84 +181,73 @@ export const GiftCardRedemption = () => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const responseData = await response.json();
-      console.log('📦 Resposta recebida:', responseData);
-      
-      // Verificar se a resposta está criptografada
-      let data: ApiResponse;
-      if (responseData.encrypted && responseData.data) {
-        try {
-          const decryptedData = decryptSessionData(responseData.data);
-          data = decryptedData; // decryptSessionData já retorna o objeto parseado
-          console.log('🔓 Dados descriptografados com sucesso:', data);
-        } catch (decryptError) {
-          console.warn('⚠️ Falha na descriptografia, usando dados diretos:', decryptError);
-          data = responseData;
-        }
-      } else {
-        console.log('📋 Dados não criptografados recebidos:', responseData);
-        data = responseData;
-      }
-      
-      console.log('✅ Dados finais para processamento:', data);
+      const data = await response.json();
+      console.log('📦 Resposta do backend:', data);
 
-      if (data.mensagem === "Código resgatado com sucesso.") {
+      if (data.status === "success") {
         let accountData: AccountData;
         
-        if (data.usuario && data.senha && data.servidor) {
-          // IPTV type account
+        if (data.servidor) {
+          // IPTV account - usa 'nome' ao invés de 'email'
           accountData = {
-            email: data.usuario,
-            password: data.senha,
+            email: data.nome || '',
+            password: data.senha || '',
             accountType: 'IPTV',
             server: data.servidor,
           };
         } else {
-          // Regular account
+          // Regular account - usa 'email' e 'tipo'
           accountData = {
             email: data.email || '',
             password: data.senha || '',
-            accountType: data.tipoConta || '',
+            accountType: data.tipo || '',
           };
         }
+
+        console.log('✅ Conta resgatada com sucesso:', accountData);
 
         // Criptografar dados antes de armazenar
         const encryptedAccountData = encryptAccountData(accountData);
         setLastAccount(encryptedAccountData);
         setResult({
           type: 'success',
-          message: data.mensagem,
+          message: 'Código resgatado com sucesso!',
           accountData: encryptedAccountData,
           visible: true
         });
-      } else if (data.mensagem === "Código já resgatado.") {
+      } else if (data.status === "error") {
+        console.warn('⚠️ Erro do backend:', data.message);
+        
+        let userMessage = 'Código da Akuma no Mi inválido.';
+        let resultType: 'error' | 'warning' = 'error';
+        
+        if (data.message === "GiftCard já resgatado") {
+          userMessage = 'Este código já foi resgatado anteriormente.';
+          resultType = 'warning';
+        } else if (data.message === "Conta desativada" || data.message === "Conta IPTV desativada") {
+          userMessage = 'Esta conta está desativada.';
+        } else if (data.message === "GiftCard não encontrado") {
+          userMessage = 'Código não encontrado ou inválido.';
+        }
+        
         setResult({
-          type: 'warning',
-          message: data.mensagem,
-          redeemedAt: data.resgatadoEm,
+          type: resultType,
+          message: userMessage,
           visible: true
         });
       } else {
         setResult({
           type: 'error',
-          message: 'Código da Akuma no Mi inválido.',
+          message: 'Resposta inesperada do servidor.',
           visible: true
         });
       }
     } catch (error) {
       console.error('❌ Erro na requisição:', error);
       
-      // Tentar modo de teste simples em caso de erro
-      console.log('🔧 Tentando modo de teste simples...');
-      try {
-        await testSimpleRequest();
-      } catch (testError) {
-        console.error('❌ Teste simples também falhou:', testError);
-      }
-      
       setResult({
         type: 'error',
-        message: 'Código da Akuma no Mi inválido. Verifique o console para mais detalhes.',
+        message: 'Erro de conexão. Verifique sua internet e tente novamente.',
         visible: true
       });
     } finally {
@@ -283,39 +255,6 @@ export const GiftCardRedemption = () => {
     }
   };
 
-  // Função de teste simples para debug
-  const testSimpleRequest = async () => {
-    try {
-      const { API_URL } = await import('@/lib/config');
-      console.log('🧪 Testando requisição simples para:', API_URL);
-      
-      // Teste com um código simples sem criptografia
-      const testUrl = `${API_URL}?acao=resgatar&codigo=TEST-GC-123456-A`;
-      console.log('🔗 URL de teste:', testUrl);
-      
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('📡 Resposta do teste:', response.status, response.statusText);
-      
-      const text = await response.text();
-      console.log('📄 Conteúdo da resposta:', text);
-      
-      try {
-        const json = JSON.parse(text);
-        console.log('📦 JSON da resposta:', json);
-      } catch (parseError) {
-        console.log('⚠️ Resposta não é JSON válido');
-      }
-      
-    } catch (error) {
-      console.error('❌ Erro no teste simples:', error);
-    }
-  };
 
   const handleCopyAccount = async () => {
     if (!lastAccount) return;
