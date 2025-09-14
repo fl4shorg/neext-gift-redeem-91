@@ -126,25 +126,6 @@ export const GiftCardRedemption = () => {
       return;
     }
 
-    // Verificar formato do código - aceitar formatos flexíveis
-    const codePattern = /^[A-Z0-9]{4,5}-[A-Z0-9]{2}-[A-Z0-9]{6,8}-[A-Z0-9]$/;
-    const normalizedCode = code.trim().toUpperCase();
-    
-    console.log('🔍 Verificando formato do código:', normalizedCode);
-    console.log('✅ Formato válido:', codePattern.test(normalizedCode));
-    
-    if (!codePattern.test(normalizedCode)) {
-      toast({
-        title: "Formato inválido",
-        description: "O código deve estar no formato: XXXXX-XX-XXXXXXXX-X",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Atualizar código com versão normalizada
-    setCode(normalizedCode);
-
     // Escolher frase aleatória e mostrar dialog
     const randomPhrase = confirmPhrases[Math.floor(Math.random() * confirmPhrases.length)];
     setConfirmPhrase(randomPhrase);
@@ -157,15 +138,23 @@ export const GiftCardRedemption = () => {
     setLastAccount(null);
 
     try {
-      console.log('🔍 Iniciando resgate do código:', code);
-      console.log('👤 Resgatante:', resgatante);
+      // Criptografar código antes de enviar
+      const encryptedCode = encryptCode(code);
       
-      const { API_URL } = await import('@/lib/config');
-      console.log('🌐 API URL:', API_URL);
+      // Gerar token de autenticação
+      const authToken = generateAuthToken(resgatante);
       
-      // Construir URL simples sem criptografia (como seu backend espera)
-      const url = `${API_URL}?action=redeem&gift=${encodeURIComponent(code)}&resgatante=${encodeURIComponent(resgatante)}`;
-      console.log('🔗 URL da requisição:', url);
+      // Criar hash da sessão
+      const sessionData = encryptSessionData({
+        user: resgatante,
+        timestamp: Date.now(),
+        action: 'redeem'
+      });
+      
+      console.log('🔐 Enviando requisição criptografada...');
+      
+      const { API_URL, APP_CONFIG } = await import('@/lib/config');
+      const url = `${API_URL}?acao=resgatar&codigo=${encodeURIComponent(encryptedCode)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -175,105 +164,81 @@ export const GiftCardRedemption = () => {
         }
       });
       
-      console.log('📡 Status da resposta:', response.status, response.statusText);
-      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
-      console.log('📦 Resposta do backend:', data);
+      const responseData = await response.json();
+      console.log('📦 Resposta recebida:', responseData);
+      
+      // Verificar se a resposta está criptografada
+      let data: ApiResponse;
+      if (responseData.encrypted && responseData.data) {
+        try {
+          const decryptedData = decryptSessionData(responseData.data);
+          data = decryptedData; // decryptSessionData já retorna o objeto parseado
+          console.log('🔓 Dados descriptografados com sucesso');
+        } catch (decryptError) {
+          console.warn('⚠️ Falha na descriptografia, usando dados diretos:', decryptError);
+          data = responseData;
+        }
+      } else {
+        data = responseData;
+      }
 
-      if (data.status === "success") {
+      if (data.mensagem === "Código resgatado com sucesso.") {
         let accountData: AccountData;
         
-        if (data.servidor) {
-          // IPTV account - usa 'nome' ao invés de 'email'
+        if (data.usuario && data.senha && data.servidor) {
+          // IPTV type account
           accountData = {
-            email: data.nome || '',
-            password: data.senha || '',
+            email: data.usuario,
+            password: data.senha,
             accountType: 'IPTV',
             server: data.servidor,
           };
         } else {
-          // Regular account - usa 'email' e 'tipo'
+          // Regular account
           accountData = {
             email: data.email || '',
             password: data.senha || '',
-            accountType: data.tipo || '',
+            accountType: data.tipoConta || '',
           };
         }
-
-        console.log('✅ Conta resgatada com sucesso:', accountData);
 
         // Criptografar dados antes de armazenar
         const encryptedAccountData = encryptAccountData(accountData);
         setLastAccount(encryptedAccountData);
         setResult({
           type: 'success',
-          message: 'Código resgatado com sucesso!',
+          message: data.mensagem,
           accountData: encryptedAccountData,
           visible: true
         });
-      } else if (data.status === "error") {
-        console.warn('⚠️ Erro do backend:', data.message);
-        
-        let userMessage = 'Código da Akuma no Mi inválido.';
-        let resultType: 'error' | 'warning' = 'error';
-        
-        if (data.message === "GiftCard já resgatado") {
-          userMessage = 'Este código já foi resgatado anteriormente.';
-          resultType = 'warning';
-        } else if (data.message === "Conta desativada" || data.message === "Conta IPTV desativada") {
-          userMessage = 'Esta conta está desativada.';
-        } else if (data.message === "GiftCard não encontrado") {
-          userMessage = 'Código não encontrado ou inválido.';
-        }
-        
+      } else if (data.mensagem === "Código já resgatado.") {
         setResult({
-          type: resultType,
-          message: userMessage,
+          type: 'warning',
+          message: data.mensagem,
+          redeemedAt: data.resgatadoEm,
           visible: true
         });
       } else {
         setResult({
           type: 'error',
-          message: 'Resposta inesperada do servidor.',
+          message: 'Código da Akuma no Mi inválido.',
           visible: true
         });
       }
     } catch (error) {
-      console.error('❌ Erro na requisição:', error);
-      console.error('❌ Tipo do erro:', typeof error);
-      console.error('❌ Erro toString:', error?.toString());
-      console.error('❌ Erro message:', (error as any)?.message);
-      console.error('❌ Erro stack:', (error as any)?.stack);
-      
-      let errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
-      
-      if ((error as any)?.message) {
-        const errorMsg = (error as any).message;
-        if (errorMsg.includes('CORS')) {
-          errorMessage = 'Erro de CORS. O Google Apps Script pode não estar configurado para aceitar requisições.';
-        } else if (errorMsg.includes('Failed to fetch')) {
-          errorMessage = 'Falha na conexão. Verifique se o Google Apps Script está ativo e publicado.';
-        } else if (errorMsg.includes('NetworkError')) {
-          errorMessage = 'Erro de rede. Verifique sua conexão com a internet.';
-        } else {
-          errorMessage = `Erro: ${errorMsg}`;
-        }
-      }
-      
       setResult({
         type: 'error',
-        message: errorMessage,
+        message: 'Código da Akuma no Mi inválido.',
         visible: true
       });
     } finally {
       setIsLoading(false);
     }
   };
-
 
   const handleCopyAccount = async () => {
     if (!lastAccount) return;
@@ -332,42 +297,21 @@ export const GiftCardRedemption = () => {
 
         {/* Code Input and Buttons */}
         <div className="w-full space-y-6">
-          {/* Etapa 1: Inserir Código */}
+          {/* Etapa 1: Captura de Imagem */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">1</span>
-              Digite ou escaneie seu código
+              Escaneie sua Akuma no Mi
             </h2>
             
-            {/* Campo de entrada manual */}
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="XXXXX-XX-XXXXXXXX-X"
-              className="akuma-input text-center font-mono text-lg tracking-wider"
-              disabled={isLoading}
-              maxLength={20}
+            <ImageCodeExtractor 
+              onCodeExtracted={handleCodeExtracted}
+              onCodeSuggestion={(code) => {
+                if (code.trim()) {
+                  setCode(code);
+                }
+              }}
             />
-            
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">ou</p>
-              <details className="text-left">
-                <summary className="cursor-pointer text-primary hover:text-primary/80 text-sm">
-                  📸 Escanear imagem do código
-                </summary>
-                <div className="mt-3">
-                  <ImageCodeExtractor 
-                    onCodeExtracted={handleCodeExtracted}
-                    onCodeSuggestion={(code) => {
-                      if (code.trim()) {
-                        setCode(code.toUpperCase());
-                      }
-                    }}
-                  />
-                </div>
-              </details>
-            </div>
           </div>
 
           {/* Etapa 2: Confirmação e Resgate */}
@@ -376,6 +320,16 @@ export const GiftCardRedemption = () => {
               <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">2</span>
               Confirme e finalize o resgate
             </h2>
+            
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Código da Akuma no Mi"
+              className="akuma-input"
+              disabled={isLoading}
+              readOnly
+            />
             
             <input
               type="text"
@@ -403,35 +357,6 @@ export const GiftCardRedemption = () => {
                   <span>Consumir</span>
                 </>
               )}
-            </button>
-            
-            <button
-              onClick={async () => {
-                console.log('🧪 Testando conexão básica...');
-                try {
-                  const { API_URL } = await import('@/lib/config');
-                  const testUrl = `${API_URL}?action=listAccounts`;
-                  console.log('🔗 URL de teste:', testUrl);
-                  
-                  const response = await fetch(testUrl);
-                  console.log('📡 Status:', response.status);
-                  
-                  if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ Resposta do teste:', data);
-                    toast({ title: "Sucesso", description: "Conexão com App Script funcionando!" });
-                  } else {
-                    console.log('❌ Erro HTTP:', response.status, response.statusText);
-                    toast({ title: "Erro", description: `HTTP ${response.status}`, variant: "destructive" });
-                  }
-                } catch (error) {
-                  console.error('❌ Erro na conexão:', error);
-                  toast({ title: "Erro", description: "Falha na conexão", variant: "destructive" });
-                }
-              }}
-              className="akuma-button glow-button opacity-70 text-xs"
-            >
-              🔧 Testar Conexão
             </button>
             
             <button
