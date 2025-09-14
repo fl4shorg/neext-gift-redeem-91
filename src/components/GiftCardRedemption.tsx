@@ -126,8 +126,8 @@ export const GiftCardRedemption = () => {
       return;
     }
 
-    // Verificar formato do código
-    const codePattern = /^[A-Z0-9]{4}-[A-Z0-9]{2}-[A-Z0-9]{6}-[A-Z0-9]$/;
+    // Verificar formato do código - aceitar formatos flexíveis
+    const codePattern = /^[A-Z0-9]{4,5}-[A-Z0-9]{2}-[A-Z0-9]{6,8}-[A-Z0-9]$/;
     const normalizedCode = code.trim().toUpperCase();
     
     console.log('🔍 Verificando formato do código:', normalizedCode);
@@ -136,7 +136,7 @@ export const GiftCardRedemption = () => {
     if (!codePattern.test(normalizedCode)) {
       toast({
         title: "Formato inválido",
-        description: "O código deve estar no formato: XXXX-XX-XXXXXX-X",
+        description: "O código deve estar no formato: XXXXX-XX-XXXXXXXX-X",
         variant: "destructive"
       });
       return;
