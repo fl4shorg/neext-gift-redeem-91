@@ -42,24 +42,66 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(), 
     mode === "development" && componentTagger(),
-    // Obfuscação leve apenas para arquivos sensíveis
+    // Obfuscação ULTRA AGRESSIVA - esconde tudo completamente
     mode === "production" && obfuscator({
-      include: ["src/lib/crypto.ts"], // Apenas arquivos sensíveis
-      exclude: [/node_modules/, /\.d\.ts$/],
+      include: [
+        "src/lib/crypto.ts",
+        "src/lib/config.ts", 
+        "src/components/GiftCardRedemption.tsx",
+        "src/components/DevilFruitIcon.tsx",
+        "src/lib/utils.ts"
+      ],
+      exclude: [/node_modules/, /\.d\.ts$/, /ui\//],
       apply: "build",
       options: {
-        // Configurações leves para performance
+        // MÁXIMA OBFUSCAÇÃO - Tudo habilitado
         compact: true,
-        identifierNamesGenerator: 'hexadecimal',
-        renameGlobals: false,
-        stringArray: false, // Desabilitado para performance
-        controlFlowFlattening: false, // Desabilitado para performance
-        deadCodeInjection: false, // Desabilitado para performance
-        debugProtection: false, // Desabilitado para performance
-        selfDefending: false, // Desabilitado para performance
-        transformObjectKeys: false, // Desabilitado para performance
-        disableConsoleOutput: true, // Mantém para remover logs
-        unicodeEscapeSequence: false
+        identifierNamesGenerator: 'mangled-shuffled',
+        renameGlobals: true,
+        
+        // Arrays e strings embaralhados
+        stringArray: true,
+        stringArrayCallsTransform: true,
+        stringArrayEncoding: ['base64'],
+        stringArrayIndexShift: true,
+        stringArrayRotate: true,
+        stringArrayShuffle: true,
+        stringArrayWrappersCount: 5,
+        stringArrayWrappersChainedCalls: true,
+        stringArrayWrappersParametersMaxCount: 5,
+        stringArrayWrappersType: 'function',
+        
+        // Controle de fluxo complexo
+        controlFlowFlattening: true,
+        controlFlowFlatteningThreshold: 1,
+        
+        // Injeção de código morto
+        deadCodeInjection: true,
+        deadCodeInjectionThreshold: 1,
+        
+        // Proteções máximas
+        debugProtection: true,
+        debugProtectionInterval: 2000,
+        selfDefending: true,
+        
+        // Transformações avançadas
+        transformObjectKeys: true,
+        splitStrings: true,
+        splitStringsChunkLength: 5,
+        
+        // Unicode e números
+        unicodeEscapeSequence: true,
+        numbersToExpressions: true,
+        
+        // Console e logs
+        disableConsoleOutput: true,
+        
+        // Seed aleatório para máxima aleatoriedade
+        seed: Math.floor(Math.random() * 100000),
+        
+        // Compactar variáveis
+        reservedNames: [],
+        reservedStrings: []
       }
     })
   ].filter(Boolean),
