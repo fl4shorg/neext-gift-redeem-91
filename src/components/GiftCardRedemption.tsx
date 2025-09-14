@@ -153,13 +153,14 @@ export const GiftCardRedemption = () => {
       
       console.log('🔐 Enviando requisição criptografada...');
       
-      const url = `https://script.google.com/macros/s/AKfycbxBevrtJRJafWTxR79Ze4b26MQDx6vYErqUhIKTFu6KhGIY1wJ59Rbq8_5FptfIMmxH/exec?acao=resgatar&codigo=${encodeURIComponent(code)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
+      const { API_URL, APP_CONFIG } = await import('@/lib/config');
+      const url = `${API_URL}?acao=resgatar&codigo=${encodeURIComponent(code)}&token=${encodeURIComponent(authToken)}&session=${encodeURIComponent(sessionData)}`;
       
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'AkumaNoMi-Client/2.0',
+          'User-Agent': atob(APP_CONFIG.userAgent),
           'X-Requested-With': 'XMLHttpRequest'
         }
       });
@@ -393,7 +394,7 @@ export const GiftCardRedemption = () => {
         {/* Social Media Buttons */}
         <div className="w-full space-y-4">
           <button 
-            onClick={() => window.open('https://instagram.com/neet.tk', '_blank')}
+            onClick={async () => { const { SOCIAL_LINKS } = await import('@/lib/config'); window.open(SOCIAL_LINKS.ig, '_blank'); }}
             className="akuma-button glow-button"
           >
             <FaInstagram />
@@ -401,7 +402,7 @@ export const GiftCardRedemption = () => {
           </button>
           
           <button 
-            onClick={() => window.open('https://whatsapp.com/channel/0029Vacb5xJKrWQpjjJgwi1z', '_blank')}
+            onClick={async () => { const { SOCIAL_LINKS } = await import('@/lib/config'); window.open(SOCIAL_LINKS.wa, '_blank'); }}
             className="akuma-button glow-button"
           >
             <FaWhatsapp />
@@ -409,7 +410,7 @@ export const GiftCardRedemption = () => {
           </button>
           
           <button 
-            onClick={() => window.open('https://www.neext.online/loginakumanomi', '_blank')}
+            onClick={async () => { const { SOCIAL_LINKS } = await import('@/lib/config'); window.open(SOCIAL_LINKS.site, '_blank'); }}
             className="akuma-button glow-button"
           >
             <FaUser />

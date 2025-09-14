@@ -1,13 +1,14 @@
 import CryptoJS from 'crypto-js';
+import { CRYPTO_KEYS } from './config';
 
-// Configurações de segurança avançadas
+// Configurações de segurança avançadas obfuscadas
 const CRYPTO_CONFIG = {
-  SECRET_KEY: 'AKUMA_NO_MI_MASTER_KEY_2024_ULTRA_SECURE',
-  SALT: 'devil_fruit_power_encryption_salt_2024',
+  SECRET_KEY: CRYPTO_KEYS[0],
+  SALT: CRYPTO_KEYS[1],
   IV_LENGTH: 16,
   KEY_SIZE: 256,
   ITERATIONS: 10000,
-  HMAC_KEY: 'akuma_integrity_verification_2024'
+  HMAC_KEY: CRYPTO_KEYS[2]
 };
 
 // Gerar chave derivada usando PBKDF2
