@@ -64,7 +64,7 @@ export default defineConfig(({ mode }) => ({
     mode === "production" && obfuscator({
       include: [
         "src/lib/crypto.ts",    // Funções de criptografia
-        "src/lib/config.ts",    // URLs e chaves sensíveis  
+        // "src/lib/config.ts" - Removido: já obfuscado manualmente
         "src/components/GiftCardRedemption.tsx" // Componente principal com API calls
       ],
       exclude: [/node_modules/, /\.d\.ts$/, /ui\//],
