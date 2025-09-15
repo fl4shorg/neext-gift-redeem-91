@@ -7,7 +7,8 @@ import {
   FaWhatsapp, 
   FaInfoCircle, 
   FaServer,
-  FaUser 
+  FaUser,
+  FaClipboard 
 } from 'react-icons/fa';
 import {
   AlertDialog,
@@ -309,25 +310,14 @@ export const GiftCardRedemption = () => {
               Confirme e finalize o resgate
             </h2>
             
-            <div className="relative">
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Código da Akuma no Mi"
-                className="akuma-input pr-16"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={handlePasteCode}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary hover:bg-primary/80 text-primary-foreground px-3 py-1 rounded text-sm transition-colors"
-                disabled={isLoading}
-                title="Colar código da área de transferência"
-              >
-                📋 Colar
-              </button>
-            </div>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Código da Akuma no Mi"
+              className="akuma-input"
+              disabled={isLoading}
+            />
             
             <input
               type="text"
@@ -337,6 +327,15 @@ export const GiftCardRedemption = () => {
               className="akuma-input"
               disabled={isLoading}
             />
+            
+            <button
+              onClick={handlePasteCode}
+              disabled={isLoading}
+              className="akuma-button glow-button"
+            >
+              <FaClipboard />
+              <span>Colar</span>
+            </button>
             
             <button
               onClick={handleRedeemClick}
