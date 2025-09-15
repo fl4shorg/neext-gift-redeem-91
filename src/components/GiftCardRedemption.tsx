@@ -26,6 +26,7 @@ import { Toast } from './Toast';
 import { RedemptionResult } from './RedemptionResult';
 import { ImageCodeExtractor } from './ImageCodeExtractor';
 import { useToast } from '@/hooks/use-toast';
+import { API_URL, SOCIAL_LINKS } from '@/lib/config';
 // Crypto imports removidos - usando nova API simplificada
 
 interface AccountData {
@@ -133,7 +134,6 @@ export const GiftCardRedemption = () => {
     try {
       console.log('🎁 Enviando requisição para nova API...');
       
-      const { API_URL } = await import('@/lib/config');
       const url = `${API_URL}?action=redeem&resgatante=${encodeURIComponent(resgatante)}&gift=${encodeURIComponent(code)}`;
       
       console.log('🔗 URL da requisição:', url);
@@ -390,7 +390,7 @@ export const GiftCardRedemption = () => {
         {/* Social Media Buttons */}
         <div className="w-full space-y-4">
           <button 
-            onClick={async () => { const { SOCIAL_LINKS } = await import('@/lib/config'); window.open(SOCIAL_LINKS.ig, '_blank'); }}
+            onClick={() => window.open(SOCIAL_LINKS.ig, '_blank')}
             className="akuma-button glow-button"
           >
             <FaInstagram />
@@ -398,7 +398,7 @@ export const GiftCardRedemption = () => {
           </button>
           
           <button 
-            onClick={async () => { const { SOCIAL_LINKS } = await import('@/lib/config'); window.open(SOCIAL_LINKS.wa, '_blank'); }}
+            onClick={() => window.open(SOCIAL_LINKS.wa, '_blank')}
             className="akuma-button glow-button"
           >
             <FaWhatsapp />
@@ -406,7 +406,7 @@ export const GiftCardRedemption = () => {
           </button>
           
           <button 
-            onClick={async () => { const { SOCIAL_LINKS } = await import('@/lib/config'); window.open(SOCIAL_LINKS.site, '_blank'); }}
+            onClick={() => window.open(SOCIAL_LINKS.site, '_blank')}
             className="akuma-button glow-button"
           >
             <FaUser />

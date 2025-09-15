@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { DEVIL_FRUIT_IMAGE } from '@/lib/config';
 
 interface DevilFruitIconProps {
   size?: number;
@@ -6,19 +6,9 @@ interface DevilFruitIconProps {
 }
 
 export const DevilFruitIcon = ({ size = 80, className = "" }: DevilFruitIconProps) => {
-  const [imageSrc, setImageSrc] = useState<string>('');
-
-  useEffect(() => {
-    const loadImage = async () => {
-      const { DEVIL_FRUIT_IMAGE } = await import('@/lib/config');
-      setImageSrc(DEVIL_FRUIT_IMAGE);
-    };
-    loadImage();
-  }, []);
-
   return (
     <img
-      src={imageSrc}
+      src={DEVIL_FRUIT_IMAGE}
       alt="Akuma no Mi"
       width={size}
       height={size}
