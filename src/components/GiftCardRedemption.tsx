@@ -135,19 +135,26 @@ export const GiftCardRedemption = () => {
       const { API_URL } = await import('@/lib/config');
       const url = `${API_URL}?action=redeem&resgatante=${encodeURIComponent(resgatante)}&gift=${encodeURIComponent(code)}`;
       
+      console.log('🔗 URL da requisição:', url);
+      console.log('📋 Parâmetros:', { action: 'redeem', resgatante, gift: code });
+      
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        }
+        mode: 'cors'
       });
+      
+      console.log('📡 Status da resposta:', response.status, response.statusText);
+      console.log('📡 Headers da resposta:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log('📄 Texto bruto da resposta:', responseText);
+      
+      const data = JSON.parse(responseText);
+      console.log('✅ JSON parseado:', data);
       console.log('📦 Resposta recebida:', data);
 
       if (data.status === "success") {
@@ -178,6 +185,7 @@ export const GiftCardRedemption = () => {
           visible: true
         });
       } else {
+        console.log('❌ Resposta de erro da API:', data);
         setResult({
           type: 'error',
           message: data.message || 'Erro ao resgatar GiftCard.',
@@ -185,9 +193,12 @@ export const GiftCardRedemption = () => {
         });
       }
     } catch (error) {
+      console.log('💥 Erro na requisição:', error);
+      console.log('💥 Tipo do erro:', typeof error);
+      console.log('💥 Stack trace:', error.stack);
       setResult({
         type: 'error',
-        message: 'Código da Akuma no Mi inválido.',
+        message: `Erro de conexão: ${error.message}`,
         visible: true
       });
     } finally {
