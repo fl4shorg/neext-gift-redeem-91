@@ -1,32 +1,42 @@
 import CryptoJS from 'crypto-js';
-import { CRYPTO_KEYS } from './config';
 
-// Configurações de segurança avançadas obfuscadas
-const CRYPTO_CONFIG = {
-  SECRET_KEY: CRYPTO_KEYS[0],
-  SALT: CRYPTO_KEYS[1],
-  IV_LENGTH: 16,
-  KEY_SIZE: 256,
-  ITERATIONS: 10000,
-  HMAC_KEY: CRYPTO_KEYS[2]
+// Função para carregar configurações de forma assíncrona
+const getCryptoConfig = async () => {
+  const { CRYPTO_KEYS } = await import('@/lib/config');
+  return {
+    SECRET_KEY: CRYPTO_KEYS[0],
+    SALT: CRYPTO_KEYS[1],
+    IV_LENGTH: 16,
+    KEY_SIZE: 256,
+    ITERATIONS: 10000,
+    HMAC_KEY: CRYPTO_KEYS[2]
+  };
 };
 
+// Cache da configuração
+let CRYPTO_CONFIG: any = null;
+
 // Gerar chave derivada usando PBKDF2
-const deriveKey = (password: string, salt: string): CryptoJS.lib.WordArray => {
+const deriveKey = (password: string, salt: string, config: any): CryptoJS.lib.WordArray => {
   return CryptoJS.PBKDF2(password, salt, {
-    keySize: CRYPTO_CONFIG.KEY_SIZE / 32,
-    iterations: CRYPTO_CONFIG.ITERATIONS
+    keySize: config.KEY_SIZE / 32,
+    iterations: config.ITERATIONS
   });
 };
 
 // Criptografia AES-256-CBC com IV aleatório e verificação de integridade
-export const encrypt = (text: string): string => {
+export const encrypt = async (text: string): Promise<string> => {
   try {
+    // Carregar configuração se não estiver em cache
+    if (!CRYPTO_CONFIG) {
+      CRYPTO_CONFIG = await getCryptoConfig();
+    }
+    
     // Gerar IV aleatório
     const iv = CryptoJS.lib.WordArray.random(CRYPTO_CONFIG.IV_LENGTH);
     
     // Derivar chave
-    const key = deriveKey(CRYPTO_CONFIG.SECRET_KEY, CRYPTO_CONFIG.SALT);
+    const key = deriveKey(CRYPTO_CONFIG.SECRET_KEY, CRYPTO_CONFIG.SALT, CRYPTO_CONFIG);
     
     // Criptografar
     const encrypted = CryptoJS.AES.encrypt(text, key, {
@@ -45,13 +55,18 @@ export const encrypt = (text: string): string => {
     return hmac.toString(CryptoJS.enc.Base64) + ':' + combined.toString(CryptoJS.enc.Base64);
   } catch (error) {
     console.error('❌ Erro na criptografia:', error);
-    return btoa(text); // Fallback simples
+    throw new Error('Falha na criptografia: ' + error);
   }
 };
 
 // Descriptografia com verificação de integridade
-export const decrypt = (encryptedText: string): string => {
+export const decrypt = async (encryptedText: string): Promise<string> => {
   try {
+    // Carregar configuração se não estiver em cache
+    if (!CRYPTO_CONFIG) {
+      CRYPTO_CONFIG = await getCryptoConfig();
+    }
+    
     // Separar HMAC dos dados
     const parts = encryptedText.split(':');
     if (parts.length !== 2) {
@@ -76,7 +91,7 @@ export const decrypt = (encryptedText: string): string => {
     const encrypted = CryptoJS.lib.WordArray.create(combined.words.slice(4));
     
     // Derivar chave
-    const key = deriveKey(CRYPTO_CONFIG.SECRET_KEY, CRYPTO_CONFIG.SALT);
+    const key = deriveKey(CRYPTO_CONFIG.SECRET_KEY, CRYPTO_CONFIG.SALT, CRYPTO_CONFIG);
     
     // Descriptografar
     const decrypted = CryptoJS.AES.decrypt(
@@ -97,31 +112,27 @@ export const decrypt = (encryptedText: string): string => {
     return result;
   } catch (error) {
     console.error('❌ Erro na descriptografia:', error);
-    try {
-      return atob(encryptedText); // Fallback
-    } catch {
-      return encryptedText;
-    }
+    throw new Error('Falha na descriptografia: ' + error);
   }
 };
 
 // Criptografar dados da conta
-export const encryptAccountData = (accountData: any) => {
+export const encryptAccountData = async (accountData: any) => {
   const timestamp = Date.now().toString();
   return {
     ...accountData,
-    email: encrypt(accountData.email || ''),
-    password: encrypt(accountData.password || ''),
-    server: accountData.server ? encrypt(accountData.server) : undefined,
-    accountType: encrypt(accountData.accountType || ''),
+    email: await encrypt(accountData.email || ''),
+    password: await encrypt(accountData.password || ''),
+    server: accountData.server ? await encrypt(accountData.server) : undefined,
+    accountType: await encrypt(accountData.accountType || ''),
     _encrypted: true,
-    _timestamp: encrypt(timestamp),
-    _checksum: encrypt(JSON.stringify(accountData))
+    _timestamp: await encrypt(timestamp),
+    _checksum: await encrypt(JSON.stringify(accountData))
   };
 };
 
 // Descriptografar dados da conta com validação
-export const decryptAccountData = (encryptedAccountData: any) => {
+export const decryptAccountData = async (encryptedAccountData: any) => {
   try {
     if (!encryptedAccountData._encrypted) {
       throw new Error('Dados não estão criptografados');
@@ -129,10 +140,10 @@ export const decryptAccountData = (encryptedAccountData: any) => {
     
     const decrypted = {
       ...encryptedAccountData,
-      email: decrypt(encryptedAccountData.email || ''),
-      password: decrypt(encryptedAccountData.password || ''),
-      server: encryptedAccountData.server ? decrypt(encryptedAccountData.server) : undefined,
-      accountType: decrypt(encryptedAccountData.accountType || ''),
+      email: await decrypt(encryptedAccountData.email || ''),
+      password: await decrypt(encryptedAccountData.password || ''),
+      server: encryptedAccountData.server ? await decrypt(encryptedAccountData.server) : undefined,
+      accountType: await decrypt(encryptedAccountData.accountType || ''),
     };
     
     // Remover metadados de criptografia
@@ -148,16 +159,16 @@ export const decryptAccountData = (encryptedAccountData: any) => {
 };
 
 // Criptografar código de resgate
-export const encryptCode = (code: string): string => {
+export const encryptCode = async (code: string): Promise<string> => {
   const timestamp = Date.now();
   const payload = JSON.stringify({ code, timestamp });
-  return encrypt(payload);
+  return await encrypt(payload);
 };
 
 // Descriptografar código de resgate
-export const decryptCode = (encryptedCode: string): string => {
+export const decryptCode = async (encryptedCode: string): Promise<string> => {
   try {
-    const decrypted = decrypt(encryptedCode);
+    const decrypted = await decrypt(encryptedCode);
     const payload = JSON.parse(decrypted);
     
     // Verificar se o código não é muito antigo (24 horas)
@@ -174,19 +185,19 @@ export const decryptCode = (encryptedCode: string): string => {
 };
 
 // Criptografar dados de sessão
-export const encryptSessionData = (data: any): string => {
+export const encryptSessionData = async (data: any): Promise<string> => {
   const sessionData = {
     ...data,
     timestamp: Date.now(),
     sessionId: CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Hex)
   };
-  return encrypt(JSON.stringify(sessionData));
+  return await encrypt(JSON.stringify(sessionData));
 };
 
 // Descriptografar dados de sessão
-export const decryptSessionData = (encryptedData: string): any => {
+export const decryptSessionData = async (encryptedData: string): Promise<any> => {
   try {
-    const decrypted = decrypt(encryptedData);
+    const decrypted = await decrypt(encryptedData);
     return JSON.parse(decrypted);
   } catch (error) {
     console.error('❌ Erro ao descriptografar sessão:', error);
@@ -195,29 +206,32 @@ export const decryptSessionData = (encryptedData: string): any => {
 };
 
 // Hash seguro para verificação
-export const createSecureHash = (data: string): string => {
+export const createSecureHash = async (data: string): Promise<string> => {
+  if (!CRYPTO_CONFIG) {
+    CRYPTO_CONFIG = await getCryptoConfig();
+  }
   return CryptoJS.SHA256(data + CRYPTO_CONFIG.SALT).toString(CryptoJS.enc.Hex);
 };
 
 // Verificar integridade de dados
-export const verifyDataIntegrity = (data: string, hash: string): boolean => {
-  return createSecureHash(data) === hash;
+export const verifyDataIntegrity = async (data: string, hash: string): Promise<boolean> => {
+  return await createSecureHash(data) === hash;
 };
 
 // Gerar token de autenticação
-export const generateAuthToken = (userId: string): string => {
+export const generateAuthToken = async (userId: string): Promise<string> => {
   const tokenData = {
     userId,
     timestamp: Date.now(),
     nonce: CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Hex)
   };
-  return encrypt(JSON.stringify(tokenData));
+  return await encrypt(JSON.stringify(tokenData));
 };
 
 // Validar token de autenticação
-export const validateAuthToken = (token: string): { valid: boolean; userId?: string } => {
+export const validateAuthToken = async (token: string): Promise<{ valid: boolean; userId?: string }> => {
   try {
-    const decrypted = decrypt(token);
+    const decrypted = await decrypt(token);
     const tokenData = JSON.parse(decrypted);
     
     // Token válido por 1 hora

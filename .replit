@@ -20,15 +20,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start application"
+args = "Preview Application"
 
 [[workflows.workflow]]
-name = "Start application"
+name = "Preview Application"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run preview"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -43,16 +43,16 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 5001
-externalPort = 3000
-
-[[ports]]
 localPort = 37755
 externalPort = 3002
 
 [[ports]]
 localPort = 38509
 externalPort = 4200
+
+[[ports]]
+localPort = 41903
+externalPort = 6000
 
 [[ports]]
 localPort = 44441
