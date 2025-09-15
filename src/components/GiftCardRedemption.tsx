@@ -239,6 +239,31 @@ export const GiftCardRedemption = () => {
     setCode(extractedCode);
   };
 
+  const handlePasteCode = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        setCode(text.trim());
+        toast({
+          title: "Código colado!",
+          description: "O código foi colado da área de transferência.",
+        });
+      } else {
+        toast({
+          title: "Área de transferência vazia",
+          description: "Não há conteúdo para colar.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao colar",
+        description: "Não foi possível acessar a área de transferência.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="akuma-card glow-card max-w-md w-full flex flex-col items-center space-y-6">
@@ -284,14 +309,25 @@ export const GiftCardRedemption = () => {
               Confirme e finalize o resgate
             </h2>
             
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Código da Akuma no Mi"
-              className="akuma-input"
-              disabled={isLoading}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Código da Akuma no Mi"
+                className="akuma-input pr-16"
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={handlePasteCode}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary hover:bg-primary/80 text-primary-foreground px-3 py-1 rounded text-sm transition-colors"
+                disabled={isLoading}
+                title="Colar código da área de transferência"
+              >
+                📋 Colar
+              </button>
+            </div>
             
             <input
               type="text"
