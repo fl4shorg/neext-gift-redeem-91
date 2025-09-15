@@ -280,7 +280,6 @@ export const GiftCardRedemption = () => {
               placeholder="Código da Akuma no Mi"
               className="akuma-input"
               disabled={isLoading}
-              readOnly
             />
             
             <input
