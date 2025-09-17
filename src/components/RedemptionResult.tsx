@@ -87,6 +87,30 @@ export const RedemptionResult = ({
               <span className="break-all">{displayAccountData.server}</span>
             </div>
           )}
+          
+          {/* Instruções específicas para IPTV */}
+          {displayAccountData.accountType === 'IPTV' && (
+            <div className="mt-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <h3 className="text-primary font-semibold mb-3 flex items-center gap-2">
+                <FaTv className="text-primary" />
+                Instruções de uso IPTV
+              </h3>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <span className="text-primary font-semibold min-w-[20px]">1.</span>
+                  <span>Ao resgatar, baixe qualquer aplicativo de IPTV na Play Store. Só assim será possível usar.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-primary font-semibold min-w-[20px]">2.</span>
+                  <span>Cole o servidor na parte solicitada. Caso apareça https no início, retire o s e deixe apenas http. Se não fizer isso, a conta não funcionará.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-primary font-semibold min-w-[20px]">3.</span>
+                  <span>Pronto! Bom uso e aproveite. ✅</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
       
