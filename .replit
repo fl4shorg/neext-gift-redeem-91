@@ -20,15 +20,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Preview Test"
+args = "Development Server"
 
 [[workflows.workflow]]
-name = "Preview Test"
+name = "Development Server"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "vite preview --port 5000 --host 0.0.0.0"
+args = "npm run dev"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -43,8 +43,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 5002
-externalPort = 6800
+localPort = 36937
+externalPort = 5173
 
 [[ports]]
 localPort = 37755
