@@ -76,17 +76,17 @@ export const RedemptionResult = ({
             <span className="break-all">{displayAccountData.password}</span>
           </div>
           
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <FaTv className="text-purple-light min-w-[20px] text-center flex-shrink-0" />
-            <span className="break-all">{displayAccountData.accountType}</span>
-          </div>
-          
           {displayAccountData.server && (
             <div className="flex items-center gap-3 text-muted-foreground">
               <FaServer className="text-purple-light min-w-[20px] text-center flex-shrink-0" />
               <span className="break-all">{displayAccountData.server}</span>
             </div>
           )}
+          
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <FaTv className="text-purple-light min-w-[20px] text-center flex-shrink-0" />
+            <span className="break-all">{displayAccountData.accountType}</span>
+          </div>
           
           {/* Instruções específicas para IPTV */}
           {displayAccountData.accountType === 'IPTV' && (
