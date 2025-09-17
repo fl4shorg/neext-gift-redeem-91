@@ -7,7 +7,6 @@ import {
   FaTv, 
   FaServer 
 } from 'react-icons/fa';
-import { decryptAccountData } from '@/lib/crypto';
 
 interface AccountData {
   email: string;
@@ -33,8 +32,8 @@ export const RedemptionResult = ({
 }: RedemptionResultProps) => {
   if (!visible) return null;
 
-  // Descriptografar dados da conta para exibição
-  const displayAccountData = accountData ? decryptAccountData(accountData) : undefined;
+  // Os dados já vem em texto simples da API, não precisam ser descriptografados
+  const displayAccountData = accountData;
 
   const getIcon = () => {
     switch (type) {
