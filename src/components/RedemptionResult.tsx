@@ -5,7 +5,10 @@ import {
   FaUser, 
   FaKey, 
   FaTv, 
-  FaServer 
+  FaServer,
+  FaAndroid,
+  FaApple,
+  FaExternalLinkAlt
 } from 'react-icons/fa';
 
 interface AccountData {
@@ -95,15 +98,41 @@ export const RedemptionResult = ({
                 <FaTv className="text-primary" />
                 Instruções de uso IPTV
               </h3>
-              <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="space-y-4 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <span className="text-primary font-semibold min-w-[20px]">1.</span>
-                  <span>Ao resgatar, baixe qualquer aplicativo de IPTV na Play Store. Só assim será possível usar.</span>
+                  <div className="space-y-3">
+                    <span>Ao resgatar, baixe um aplicativo de IPTV na Play Store (Android) ou App Store (iOS).</span>
+                    
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">Para Android, recomendamos:</div>
+                      <button
+                        onClick={() => window.open('https://tekmods.com/iptv-smarters-pro-player-android-apk-mod/', '_blank')}
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg transition-colors"
+                      >
+                        <FaAndroid />
+                        <span>IPTV Smarters Pro (APK)</span>
+                        <FaExternalLinkAlt className="text-xs" />
+                      </button>
+                      
+                      <div className="text-xs text-muted-foreground mt-2">Para iOS, recomendamos:</div>
+                      <button
+                        onClick={() => window.open('https://apps.apple.com/br/app/smarters-player-lite/id1628995509', '_blank')}
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-colors"
+                      >
+                        <FaApple />
+                        <span>Smarters Player Lite</span>
+                        <FaExternalLinkAlt className="text-xs" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
+                
                 <div className="flex items-start gap-2">
                   <span className="text-primary font-semibold min-w-[20px]">2.</span>
                   <span>Cole o servidor na parte solicitada. Caso apareça https no início, retire o s e deixe apenas http. Se não fizer isso, a conta não funcionará.</span>
                 </div>
+                
                 <div className="flex items-start gap-2">
                   <span className="text-primary font-semibold min-w-[20px]">3.</span>
                   <span>Pronto! Bom uso e aproveite. ✅</span>
