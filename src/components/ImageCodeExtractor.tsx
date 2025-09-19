@@ -56,31 +56,37 @@ export const ImageCodeExtractor = ({ onCodeExtracted, onCodeSuggestion }: ImageC
 
     console.log('Normalized text:', text);
 
-    // Enhanced patterns specifically for your gift card
+    // Universal patterns for ANY gift card combination
     const patterns = [
-      // Perfect match
-      /NEEXT\s*-\s*GC\s*-\s*8UXSDAB2\s*-\s*5/,
-      // With OCR errors but recognizable structure
-      /N[E3]+XT\s*[-\s]*\s*G[C]\s*[-\s]*\s*[8B]UX[S5]DA[B8]2\s*[-\s]*\s*5/,
-      // Very flexible pattern
-      /[NM][E3E]+[XT]\s*[-\s]*\s*[GC][C]?\s*[-\s]*\s*[8B]UX[S5]DA[B8]2\s*[-\s]*\s*5/,
-      // Look for the specific code pattern anywhere
-      /8UX[S5]DA[B8]2[-\s]*5/,
-      /[B8]UX[S5]DA[B8]2[-\s]*5/
+      // Perfect match - NEEXT-GC-XXXXXXXX-X (any combination)
+      /NEEXT\s*-\s*GC\s*-\s*([A-Z0-9]{6,12})\s*-\s*([0-9])/,
+      // Flexible with common OCR errors
+      /N[E3]+XT\s*[-\s]*\s*G[C]\s*[-\s]*\s*([A-Z0-9]{6,12})\s*[-\s]*\s*([0-9])/,
+      // Very flexible pattern (handles spacing and character confusion)
+      /[NM][E3E]+[XT]\s*[-\s]*\s*[GC][C]?\s*[-\s]*\s*([A-Z0-9]{6,12})\s*[-\s]*\s*([0-9])/,
+      // Collapsed format (no spaces/hyphens)
+      /NEEXTGC([A-Z0-9]{6,12})([0-9])/,
+      // Just the main structure without prefix
+      /GC\s*[-\s]*\s*([A-Z0-9]{6,12})\s*[-\s]*\s*([0-9])/
     ];
 
     for (const pattern of patterns) {
       const match = text.match(pattern);
-      if (match) {
-        console.log('Matched pattern:', pattern.toString(), '→ NEEXT-GC-8UXSDAB2-5');
-        return 'NEEXT-GC-8UXSDAB2-5';
+      if (match && match.length >= 3) {
+        const body = match[1].replace(/\s+/g, '');
+        const last = match[2];
+        const candidate = `NEEXT-GC-${body}-${last}`;
+        console.log('Matched pattern:', pattern.toString(), '→', candidate);
+        return candidate;
       }
     }
 
-    // Also try looking for parts of the code
-    if (text.includes('8UXSDAB2') || text.includes('BUXSDAB2') || text.includes('8UX5DAB2')) {
-      console.log('Found code fragment, returning full code');
-      return 'NEEXT-GC-8UXSDAB2-5';
+    // Look for any NEEXT-GC pattern (even if spacing is weird)
+    const simpleMatch = text.match(/NEEXT[-\s]*GC[-\s]*([A-Z0-9]{6,12})[-\s]*([0-9])/);
+    if (simpleMatch) {
+      const candidate = `NEEXT-GC-${simpleMatch[1]}-${simpleMatch[2]}`;
+      console.log('Found simple pattern:', candidate);
+      return candidate;
     }
 
     console.log('No match found with current rules.');
